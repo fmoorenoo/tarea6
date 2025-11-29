@@ -4,9 +4,10 @@ const btnGetPhp   = document.querySelector('#btnGetPhp');
 const btnPostSql  = document.querySelector('#btnPostSql');
 const btnGetSql   = document.querySelector('#btnGetSql');
 const infoMsg     = document.querySelector('.info-msg');
+btnPostPhp.disabled = true;
+btnPostSql.disabled = true;
 
-
-// Objeto de patrones de REGEX.
+// Objeto de patrones de REGEX
 const patterns = {
     nombre: /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+$/u,
     apellidos: /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?$/u,
@@ -22,118 +23,44 @@ const patterns = {
     repcontrasena: /.*/
 };
 
-// Contraseñas (sin los ••••)
-const contrasenas = {
-    contrasena: "",
-    repcontrasena: ""
-};
-
-//// Declaramos la constante 'inputs' que contendrá la colección de inputs. 
-const form = document.querySelector('#formulario').addEventListener('submit', (e) => {
+// Prevenir envío real del formulario
+document.querySelector('#formulario').addEventListener('submit', (e) => {
     e.preventDefault();
 });
+
+// Inputs
 const inputs = document.querySelectorAll('input');
 
-// Borra en la posición del cursor o selección
-function borrarCaracteres(valor, start, end) {
-    if (start === 0 && start === end) {
-        return { nuevoValor: valor, nuevaPos: start };
-    }
-
-    // Si hay selección, borrar el rango [start, end]
-    if (start !== end) {
-        const nuevoValor = valor.slice(0, start) + valor.slice(end);
-        return { nuevoValor, nuevaPos: start };
-    }
-
-    // Si no hay selección, borrar el carácter a la izquierda del cursor
-    const nuevoValor = valor.slice(0, start - 1) + valor.slice(start);
-    return { nuevoValor, nuevaPos: start - 1 };
+// Mostrar mensaje en el DOM
+function mostrarMensaje(texto) {
+    infoMsg.textContent = texto;
+    infoMsg.classList.remove('oculto');
+    setTimeout(() => infoMsg.classList.add('oculto'), 5000);
 }
 
-// Validación en keyup (sin ser contraseñas)
+// Validación en keyup
 inputs.forEach((input) => {
     input.addEventListener('keyup', (e) => {
         const name = e.target.name;
         if (!name || name.trim() === "") return;
 
+        // Comprobar campos de contraseña
         if (name === "contrasena" || name === "repcontrasena") {
+            validateRepeatPassword();
             return;
         }
 
-        validate(e.target, patterns[name]);
-    });
-});
-
-// Manejar eventos (borrar y puntos en contraseñas)
-inputs.forEach((input) => {
-    input.addEventListener('keydown', (e) => {
-        const name = input.name;
-
-        if (name === "contrasena" || name === "repcontrasena") {
-            if (e.key === "Backspace") {
-                e.preventDefault();
-                const start = input.selectionStart ?? contrasenas[name].length;
-                const end = input.selectionEnd ?? contrasenas[name].length;
-                const { nuevoValor, nuevaPos } = borrarCaracteres(contrasenas[name], start, end);
-                contrasenas[name] = nuevoValor;
-                input.value = "•".repeat(contrasenas[name].length);
-                input.selectionStart = input.selectionEnd = Math.max(0, Math.min(nuevaPos, input.value.length));
-                validatePasswordField(name, input);
-                return;
-            }
-
-            if (e.key.length > 1 || e.ctrlKey || e.metaKey || e.altKey) {
-                return;
-            }
-
-            e.preventDefault();
-            const start = input.selectionStart ?? contrasenas[name].length;
-            const end = input.selectionEnd ?? contrasenas[name].length;
-            const antes = contrasenas[name].slice(0, start);
-            const despues = contrasenas[name].slice(end);
-            contrasenas[name] = antes + e.key + despues;
-            input.value = "•".repeat(contrasenas[name].length);
-            const nuevaPos = start + 1;
-            input.selectionStart = input.selectionEnd = Math.max(0, Math.min(nuevaPos, input.value.length));
-            validatePasswordField(name, input);
-            return;
-        }
-
-        // Resto de campos
-        if (e.key === "Backspace") {
-            e.preventDefault();
-            const start = input.selectionStart ?? input.value.length;
-            const end = input.selectionEnd ?? input.value.length;
-            const { nuevoValor, nuevaPos } = borrarCaracteres(input.value, start, end);
-            input.value = nuevoValor;
-            let pos = nuevaPos;
-            if (pos < 0) {
-                pos = 0;
-            } else if (pos > input.value.length) {
-                pos = input.value.length;
-            }
-            input.selectionStart = pos;
-            input.selectionEnd = pos;
-            const name = input.name;
-            if (name && name.trim() !== "") {
-                validate(input, patterns[name]);
-            }
+        const regex = patterns[name];
+        if (regex) {
+            validate(e.target, regex);
         }
     });
 });
 
-// Validar campo de contraseña
-function validatePasswordField(name, input) {
-    const realValue = contrasenas[name] || "";
-    input.value = realValue;
-    validate(input, patterns[name]);
-    input.value = "•".repeat(realValue.length);
-}
-
+// Función de validación de un campo
 function validate(campo, regex) {
     const contenedor = campo.parentElement;
-
+    // Mensaje específico para cada campo
     const mensajes = {
         nombre: "El nombre debe empezar con mayúscula y solo letras.",
         apellidos: "Máximo dos apellidos y deben empezar con mayúscula.",
@@ -157,48 +84,6 @@ function validate(campo, regex) {
         contenedor.appendChild(mensaje);
     }
 
-    if (campo.name === "contrasena" || campo.name === "repcontrasena") {
-        campo.value = contrasenas[campo.name] || "";
-    }
-
-    // Validar repetir contraseña
-    if (campo.name === "repcontrasena") {
-        const valorRep = contrasenas.repcontrasena || "";
-        const valorContrasena = contrasenas.contrasena || "";
-        if (valorRep.trim() === "") {
-            campo.classList.remove('valido', 'invalido');
-            mensaje.textContent = "";
-            mensaje.style.display = "none";
-            comprobarCamposValidos();
-            return;
-        }
-
-        const regexContrasena = patterns.contrasena;
-        const cumpleFormato = regexContrasena.test(valorRep);
-        const coincide = valorRep === valorContrasena;
-        if (cumpleFormato && coincide) {
-            campo.classList.remove('invalido');
-            campo.classList.add('valido');
-            mensaje.textContent = "";
-            mensaje.style.display = "none";
-        } else {
-            campo.classList.remove('valido');
-            campo.classList.add('invalido');
-            if (!cumpleFormato) {
-                mensaje.textContent = mensajes.contrasena;
-            } else if (!coincide) {
-                mensaje.textContent = "Las contraseñas no coinciden.";
-            } else {
-                mensaje.textContent = mensajes.repcontrasena;
-            }
-            mensaje.style.display = "block";
-        }
-
-        comprobarCamposValidos();
-        return;
-    }
-
-    // Resto de campos
     if (campo.value.trim() === "") {
         campo.classList.remove('valido', 'invalido');
         mensaje.textContent = "";
@@ -210,39 +95,87 @@ function validate(campo, regex) {
     if (regex && regex.test(campo.value)) {
         campo.classList.remove('invalido');
         campo.classList.add('valido');
-
         mensaje.textContent = "";
         mensaje.style.display = "none";
     } else {
         campo.classList.remove('valido');
         campo.classList.add('invalido');
-
         mensaje.textContent = mensajes[campo.name] || "El valor introducido no es válido";
         mensaje.style.display = "block";
-    }
-
-    // Revalidar campo de 'repetir' si cambia la contraseña
-    if (campo.name === "contrasena") {
-        const rep = document.querySelector('input[name="repcontrasena"]');
-        if (rep) {
-            validatePasswordField("repcontrasena", rep);
-        }
     }
 
     comprobarCamposValidos();
 }
 
-// Comprueba si todos los campos son válidos para habilitar el botón de guardar
+// Comparar campos de contraseña y repetir contraseña
+function validateRepeatPassword() {
+    const passInput = document.querySelector('input[name="contrasena"]');
+    const repInput  = document.querySelector('input[name="repcontrasena"]');
+    validate(passInput, patterns.contrasena);
+
+    const contenedorRep = repInput.parentElement;
+    let mensaje = contenedorRep.querySelector('.mensaje-error');
+
+    if (!mensaje) {
+        mensaje = document.createElement('div');
+        mensaje.classList.add('mensaje-error');
+        contenedorRep.appendChild(mensaje);
+    }
+
+    if ((repInput.value).trim() === "") {
+        repInput.classList.remove('valido', 'invalido');
+        mensaje.textContent = "";
+        mensaje.style.display = "none";
+        comprobarCamposValidos();
+        return;
+    }
+
+    // Comprobar formato y coincidencia
+    const formatoOk = patterns.contrasena.test(repInput.value);
+    const coincide  = repInput.value === passInput.value;
+
+    if (formatoOk && coincide) {
+        repInput.classList.remove('invalido');
+        repInput.classList.add('valido');
+        mensaje.textContent = "";
+        mensaje.style.display = "none";
+    } else {
+        repInput.classList.remove('valido');
+        repInput.classList.add('invalido');
+
+        if (!formatoOk) {
+            mensaje.textContent = "Debe tener 12 caracteres incluyendo letra, número y símbolo.";
+        } else {
+            mensaje.textContent = "Las contraseñas no coinciden.";
+        }
+        mensaje.style.display = "block";
+    }
+
+    comprobarCamposValidos();
+}
+
+
+// Comprueba si todos los campos son válidos
 function comprobarCamposValidos() {
     let todosValidos = true;
     inputs.forEach((input) => {
+        const name = input.name;
+        if (!name || name.trim() === "") return;
+
+        if (!patterns[name] && name !== "repcontrasena") return;
+
         if (input.value.trim() === "" || !input.classList.contains('valido')) {
             todosValidos = false;
         }
     });
+    btnPostPhp.disabled = !todosValidos;
+    btnPostSql.disabled = !todosValidos;
+
+    return todosValidos;
 }
 
-// Construir objeto JSON con los nombres del enunciado
+
+// Construir objeto JSON
 function construirObjetoServidor() {
     return {
         nombre:    document.querySelector('#nombre').value,
@@ -251,15 +184,15 @@ function construirObjetoServidor() {
         fecha:     document.querySelector('#nacimiento').value,
         cp:        document.querySelector('#postal').value,
         correo:    document.querySelector('#email').value,
-        "teléfono": document.querySelector('#fijo').value,
-        "móvil":    document.querySelector('#movil').value,
+        telefono: document.querySelector('#fijo').value,
+        movil:    document.querySelector('#movil').value,
         tarjeta:   document.querySelector('#credito').value,
         iban:      document.querySelector('#iban').value,
-        "contraseña": contrasenas.contrasena || ""
+        contrasena: document.querySelector('#contrasena').value
     };
 }
 
-// Rellenar el formulario a partir del objeto devuelto por servidor
+// Rellenar el formulario a partir del objeto devuelto
 function rellenarFormularioDesdeServidor(datos) {
     if (!datos) return;
 
@@ -269,32 +202,19 @@ function rellenarFormularioDesdeServidor(datos) {
     document.querySelector('#nacimiento').value= datos.fecha || "";
     document.querySelector('#postal').value    = datos.cp || "";
     document.querySelector('#email').value     = datos.correo || "";
-    document.querySelector('#fijo').value      = datos["teléfono"] || "";
-    document.querySelector('#movil').value     = datos["móvil"] || "";
+    document.querySelector('#fijo').value      = datos.telefono || "";
+    document.querySelector('#movil').value     = datos.movil || "";
     document.querySelector('#credito').value   = datos.tarjeta || "";
     document.querySelector('#iban').value      = datos.iban || "";
+    document.querySelector('#contrasena').value    = datos.contrasena || "";
+    document.querySelector('#repcontrasena').value = datos.contrasena || "";
 
-    // Contraseñas
-    const valorPass = datos["contraseña"] || "";
-    contrasenas.contrasena   = valorPass;
-    contrasenas.repcontrasena= valorPass;
-
-    const inputCon = document.querySelector('#contrasena');
-    const inputRep = document.querySelector('#repcontrasena');
-
-    if (inputCon) {
-        inputCon.value = "•".repeat(valorPass.length);
-        validatePasswordField("contrasena", inputCon);
-    }
-    if (inputRep) {
-        inputRep.value = "•".repeat(valorPass.length);
-        validatePasswordField("repcontrasena", inputRep);
-    }
-
-    // Vuelve a validar todos los campos
+    // Revalidar todos los campos
     document.querySelectorAll('input').forEach(input => {
         const name = input.name;
-        if (patterns[name]) {
+        if (name === "repcontrasena") {
+            validateRepeatPassword();
+        } else if (patterns[name]) {
             validate(input, patterns[name]);
         }
     });
@@ -306,13 +226,129 @@ function limpiarFormulario() {
         input.value = "";
         input.classList.remove('valido', 'invalido');
     });
-    contrasenas.contrasena = "";
-    contrasenas.repcontrasena = "";
+
+    document.querySelectorAll('.mensaje-error').forEach(msg => {
+        msg.textContent = "";
+        msg.style.display = "none";
+    });
 }
 
-// Mostrar mensaje
-function mostrarMensaje(texto) {
-    infoMsg.textContent = texto;
-    infoMsg.classList.remove('oculto');
-    setTimeout(() => infoMsg.classList.add('oculto'), 4000);
-}
+// GET .json (datos.json)
+btnGetJson.addEventListener('click', async () => {
+    try {
+        const response = await fetch('datos.json');
+        if (!response.ok) {
+            throw new Error('Respuesta HTTP no válida');
+        }
+
+        const datos = await response.json();
+        rellenarFormularioDesdeServidor(datos);
+        mostrarMensaje('Datos cargados desde datos.json');
+    } catch (error) {
+        mostrarMensaje('Error al leer datos desde datos.json: ' + error.message);
+    }
+});
+
+// POST -> process.php (envíar objeto. El servidor lo rebota)
+btnPostPhp.addEventListener('click', async () => {
+    const datos = construirObjetoServidor();
+    const dbParam = encodeURIComponent(JSON.stringify(datos));
+
+    try {
+        const response = await fetch('process.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'x=' + dbParam
+        });
+
+        if (!response.ok) {
+            throw new Error('Respuesta HTTP no válida: ' + response.status);
+        }
+
+        const myObj = await response.json();
+        console.log('Respuesta de process.php (POST):', myObj);
+
+        limpiarFormulario();
+        mostrarMensaje(myObj.nombre + ' se ha enviado y recibido correctamente desde process.php');
+    } catch (error) {
+        mostrarMensaje('Error al enviar datos a process.php: ' + error.message);
+    }
+});
+
+// GET -> process.php
+btnGetPhp.addEventListener('click', async () => {
+    try {
+        const response = await fetch('process.php');
+
+        if (!response.ok) {
+            throw new Error('Respuesta HTTP no válida: ' + response.status);
+        }
+
+        const datos = await response.json();
+        console.log('Respuesta de process.php (GET):', datos);
+
+        rellenarFormularioDesdeServidor(datos);
+        mostrarMensaje(datos.nombre + ' se ha recibido correctamente desde process.php');
+    } catch (error) {
+        mostrarMensaje('Error al obtener datos desde process.php: ' + error.message);
+    }
+});
+
+
+// POST + SQL (guardar en BD)
+btnPostSql.addEventListener('click', async () => {
+    const datos = construirObjetoServidor();
+
+    try {
+        const response = await fetch('postSql.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+
+        if (!response.ok) {
+            throw new Error('Respuesta HTTP no válida');
+        }
+
+        const resultado = await response.json();
+
+        if (resultado.ok) {
+            limpiarFormulario();
+            mostrarMensaje('Datos guardados en la base de datos');
+        } else {
+            mostrarMensaje('Error al guardar en la base de datos: ' + (resultado.error || 'desconocido'));
+        }
+    } catch (error) {
+        mostrarMensaje('Error de conexión con postSql.php: ' + error.message);
+    }
+});
+
+// GET + SQL (según el DNI)
+btnGetSql.addEventListener('click', async () => {
+    const dniInput = document.querySelector('#dninie');
+    const dni = dniInput.value.trim();
+
+    if (dni === '') {
+        mostrarMensaje('Escribe un DNI en el formulario para buscar en la base de datos');
+        return;
+    }
+
+    try {
+        const response = await fetch('getSql.php?dni=' + encodeURIComponent(dni));
+
+        if (!response.ok) {
+            throw new Error('Respuesta HTTP no válida');
+        }
+
+        const datos = await response.json();
+
+        if (datos && datos.dni) {
+            rellenarFormularioDesdeServidor(datos);
+            mostrarMensaje('Datos obtenidos desde la base de datos');
+        } else {
+            mostrarMensaje('No se ha encontrado ningún usuario con ese DNI en la base de datos');
+        }
+    } catch (error) {
+        mostrarMensaje('Error de conexión con getSql.php: ' + error.message);
+    }
+});
