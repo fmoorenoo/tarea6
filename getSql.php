@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 header('Content-Type: application/json; charset=utf-8');
 
 // Obtener el DNI enviado por GET
@@ -11,7 +13,7 @@ if ($dni === '') {
 }
 
 // Conexión con MySQL
-$mysqli = new mysqli('localhost', 'root', '', 'formulario');
+$mysqli = new mysqli('localhost', 'usuariodew', '1234', 'dew');
 
 if ($mysqli->connect_errno) {
     echo json_encode(['ok' => false, 'error' => 'Error de conexión a la base de datos']);
@@ -22,7 +24,7 @@ if ($mysqli->connect_errno) {
 $stmt = $mysqli->prepare(
     'SELECT dni, nombre, apellido, fecha, cp, correo,
             telefono, movil, tarjeta, iban, contrasena
-     FROM usuarios WHERE dni = ?'
+    FROM usuarios WHERE dni = ?'
 );
 
 $stmt->bind_param('s', $dni);

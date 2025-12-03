@@ -15,7 +15,7 @@ if (!$data) {
 }
 
 // Conexión con MySQL
-$mysqli = new mysqli('localhost', 'root', '', 'formulario');
+$mysqli = new mysqli('localhost', 'usuariodew', '1234', 'dew');
 if ($mysqli->connect_errno) {
     echo json_encode(['ok' => false, 'error' => 'Error de conexión a la base de datos']);
     exit;
@@ -40,7 +40,7 @@ $check->close();
 $stmt = $mysqli->prepare(
     'INSERT INTO usuarios 
     (dni, nombre, apellido, fecha, cp, correo, telefono, movil, tarjeta, iban, contrasena)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)'
 );
 
 $stmt->bind_param(

@@ -334,21 +334,22 @@ btnGetSql.addEventListener('click', async () => {
     }
 
     try {
-        const response = await fetch('getSql.php?dni=' + encodeURIComponent(dni));
+    const response = await fetch('getSql.php?dni=' + encodeURIComponent(dni));
 
-        if (!response.ok) {
-            throw new Error('Respuesta HTTP no válida');
-        }
-
-        const datos = await response.json();
-
-        if (datos && datos.dni) {
-            rellenarFormularioDesdeServidor(datos);
-            mostrarMensaje('Datos obtenidos desde la base de datos');
-        } else {
-            mostrarMensaje('No se ha encontrado ningún usuario con ese DNI en la base de datos');
-        }
-    } catch (error) {
-        mostrarMensaje('Error de conexión con getSql.php: ' + error.message);
+    if (!response.ok) {
+        const text = await response.text(); // obtener la respuesta completa
+        throw new Error(`HTTP ${response.status}: ${text}`);
     }
+
+    const datos = await response.json();
+    if (datos && datos.dni) {
+        rellenarFormularioDesdeServidor(datos);
+        mostrarMensaje('Datos obtenidos desde la base de datos');
+    } else {
+        mostrarMensaje('No se ha encontrado ningún usuario con ese DNI en la base de datos');
+    }
+} catch (error) {
+    mostrarMensaje('Error de conexión con getSql.php: ' + error.message);
+}
+
 });
